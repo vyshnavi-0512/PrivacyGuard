@@ -1,0 +1,343 @@
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
+import { 
+  useCreateScan, 
+  useGetAiRecommendations,
+  getGetScanHistoryQueryKey,
+  getGetDashboardSummaryQueryKey,
+  getGetBreachCategoriesQueryKey
+} from "@/lib/api-client";
+import type { ScanResult, AdvisorResponse } from "@/lib/api-client";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Search, ShieldAlert, Cpu, AlertTriangle, CheckCircle, ArrowRight, Shield } from "lucide-react";
+
+const phoneRegex = /^\+?[1-9]\d{7,14}$/;
+
+const scanSchema = z
+  .object({
+    query: z.string().min(1, "Query is required"),
+    type: z.enum(["email", "username", "phone"]),
+  })
+  .superRefine((val, ctx) => {
+    if (val.type !== "phone") return;
+    if (!phoneRegex.test(val.query.trim())) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Enter a valid international phone number (E.164 style, e.g. +919876543210).",
+        path: ["query"],
+      });
+    }
+  });
+
+export default function ScanPage() {
+  const [location] = useLocation();
+  const searchParams = new URLSearchParams(window.location.search);
+  const initialQuery = searchParams.get("query") || "";
+  const initialType = (searchParams.get("type") as "email" | "username" | "phone") || "email";
+
+  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
+  const [advisorResponse, setAdvisorResponse] = useState<AdvisorResponse | null>(null);
+
+  const queryClient = useQueryClient();
+  const createScan = useCreateScan();
+  const getAdvisor = useGetAiRecommendations();
+
+  const form = useForm<z.infer<typeof scanSchema>>({
+    resolver: zodResolver(scanSchema),
+    defaultValues: {
+      query: initialQuery,
+      type: initialType,
+    },
+  });
+
+  const onSubmit = (values: z.infer<typeof scanSchema>) => {
+    setScanResult(null);
+    setAdvisorResponse(null);
+    createScan.mutate(
+      { data: values },
+      {
+        onSuccess: (result) => {
+          setScanResult(result);
+          queryClient.invalidateQueries({ queryKey: getGetScanHistoryQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getGetBreachCategoriesQueryKey() });
+        },
+      }
+    );
+  };
+
+  const handleGetAdvice = () => {
+    if (!scanResult) return;
+    getAdvisor.mutate(
+      {
+        data: {
+          scanId: scanResult.id,
+          breaches: scanResult.breaches,
+          exposedDataTypes: scanResult.exposedDataTypes,
+        },
+      },
+      {
+        onSuccess: (res) => {
+          setAdvisorResponse(res);
+        },
+      }
+    );
+  };
+
+  return (
+    <div className="space-y-8 max-w-4xl mx-auto pb-12">
+      <Card className="bg-card/40 border-border/50 backdrop-blur">
+        <CardHeader className="border-b border-border/50 pb-6">
+          <CardTitle className="font-display font-semibold text-2xl tracking-wide flex items-center">
+            <Search className="w-6 h-6 mr-3 text-primary" />
+            Threat Scan Initialization
+          </CardTitle>
+          <CardDescription className="font-mono text-muted-foreground mt-2">
+            Enter an email address, username, or phone number to cross-reference against known data breaches.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="md:col-span-3">
+                  <FormField
+                    control={form.control}
+                    name="query"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Target Identifier</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder={form.watch("type") === "phone" ? "+919876543210" : form.watch("type") === "username" ? "example_user" : "target@example.com"}
+                            className="bg-secondary/50 font-mono border-primary/20 focus-visible:border-primary h-12"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage className="font-mono text-xs" />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="md:col-span-1">
+                  <FormField
+                    control={form.control}
+                    name="type"
+                    render={({ field }) => (
+                      <FormItem className="space-y-3">
+                        <FormLabel className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Target Type</FormLabel>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            className="flex flex-col space-y-1"
+                          >
+                            <FormItem className="flex items-center space-x-3 space-y-0">
+                              <FormControl>
+                                <RadioGroupItem value="email" className="border-primary/50 text-primary" />
+                              </FormControl>
+                              <FormLabel className="font-mono font-normal">Email</FormLabel>
+                            </FormItem>
+                            <FormItem className="flex items-center space-x-3 space-y-0">
+                              <FormControl>
+                                <RadioGroupItem value="username" className="border-primary/50 text-primary" />
+                              </FormControl>
+                              <FormLabel className="font-mono font-normal">Username</FormLabel>
+                            </FormItem>
+
+                            <FormItem className="flex items-center space-x-3 space-y-0">
+                              <FormControl>
+                                <RadioGroupItem value="phone" className="border-primary/50 text-primary" />
+                              </FormControl>
+                              <FormLabel className="font-mono font-normal">Phone Number</FormLabel>
+                            </FormItem>
+                          </RadioGroup>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+              <Button 
+                type="submit" 
+                disabled={createScan.isPending}
+                className="w-full font-display uppercase tracking-widest h-12"
+              >
+                {createScan.isPending ? (
+                  <span className="flex items-center">
+                    <span className="animate-pulse mr-2">Scanning</span>
+                    <span className="w-1.5 h-1.5 bg-primary-foreground rounded-full animate-bounce mx-0.5" />
+                    <span className="w-1.5 h-1.5 bg-primary-foreground rounded-full animate-bounce mx-0.5 delay-75" />
+                    <span className="w-1.5 h-1.5 bg-primary-foreground rounded-full animate-bounce mx-0.5 delay-150" />
+                  </span>
+                ) : (
+                  <span className="flex items-center">
+                    Initiate Scan <ArrowRight className="ml-2 w-4 h-4" />
+                  </span>
+                )}
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+
+      {scanResult && (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-xl font-bold tracking-wide flex items-center">
+              <ShieldAlert className="w-5 h-5 mr-2 text-primary" />
+              Scan Results
+            </h2>
+            <div className="flex items-center space-x-4">
+              <div className="text-right">
+                <div className="font-mono text-xs text-muted-foreground uppercase tracking-wider">Risk Score</div>
+                <div className="font-mono font-bold text-2xl text-primary">{scanResult.riskScore}/100</div>
+              </div>
+              <Badge variant={scanResult.breachCount > 0 ? "destructive" : "default"} className="font-mono py-1 px-3">
+                {scanResult.riskLevel.toUpperCase()}
+              </Badge>
+            </div>
+          </div>
+
+          {scanResult.breachCount === 0 ? (
+            <Card className="bg-primary/5 border-primary/20">
+              <CardContent className="py-12 flex flex-col items-center justify-center text-center">
+                <CheckCircle className="w-16 h-16 text-primary mb-4 opacity-80" />
+                <h3 className="font-display text-2xl font-semibold mb-2">No Breaches Detected</h3>
+                <p className="font-mono text-muted-foreground max-w-md">
+                  The target identifier ({scanResult.query}) does not appear in any known data breaches in our database.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              <p className="font-mono text-sm text-destructive flex items-center bg-destructive/10 p-3 rounded border border-destructive/20">
+                <AlertTriangle className="w-4 h-4 mr-2" />
+                Detected in {scanResult.breachCount} known data breaches exposing {scanResult.exposedDataTypes.length} unique data types.
+              </p>
+              
+              <div className="grid grid-cols-1 gap-4">
+                {scanResult.breaches.map((breach, idx) => (
+                  <Card key={idx} className="bg-card/60 border-destructive/20 relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-destructive/50" />
+                    <CardHeader className="py-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="font-display font-semibold text-lg">{breach.name}</CardTitle>
+                          <CardDescription className="font-mono text-xs mt-1">Domain: {breach.domain} | Date: {new Date(breach.breachDate).toLocaleDateString()}</CardDescription>
+                        </div>
+                        <Badge variant="outline" className="font-mono text-xs border-destructive/30 text-destructive bg-destructive/10">
+                          {breach.riskLevel.toUpperCase()} RISK
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <Separator className="bg-border/50" />
+                    <CardContent className="py-4">
+                      <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{breach.description}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {breach.dataClasses.map((dc, i) => (
+                          <Badge key={i} variant="secondary" className="font-mono text-[10px] bg-secondary/80">
+                            {dc}
+                          </Badge>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!advisorResponse && scanResult.breachCount > 0 && (
+            <div className="flex justify-center pt-8">
+              <Button 
+                onClick={handleGetAdvice} 
+                disabled={getAdvisor.isPending}
+                size="lg"
+                className="font-display uppercase tracking-widest bg-accent text-accent-foreground hover:bg-accent/90"
+              >
+                {getAdvisor.isPending ? (
+                  <span className="flex items-center">
+                    <Cpu className="w-4 h-4 mr-2 animate-spin" />
+                    Analyzing Threat Data...
+                  </span>
+                ) : (
+                  <span className="flex items-center">
+                    <Cpu className="w-4 h-4 mr-2" />
+                    Generate AI Remediation Plan
+                  </span>
+                )}
+              </Button>
+            </div>
+          )}
+
+          {advisorResponse && (
+            <div className="mt-12 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <h2 className="font-display text-xl font-bold tracking-wide flex items-center text-accent">
+                <Shield className="w-5 h-5 mr-2" />
+                AI Security Advisor Plan
+              </h2>
+
+              <Card className="bg-accent/5 border-accent/20">
+                <CardHeader>
+                  <CardTitle className="font-display text-lg text-accent">Threat Assessment</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 font-mono text-sm leading-relaxed">
+                  <p>{advisorResponse.overallAssessment}</p>
+                  <p className="text-muted-foreground border-l-2 border-accent/30 pl-4 py-1">{advisorResponse.riskSummary}</p>
+                </CardContent>
+              </Card>
+
+              <div className="space-y-4">
+                <h3 className="font-display font-semibold text-lg mt-8 mb-4">Recommended Actions</h3>
+                {advisorResponse.recommendations.map((rec, idx) => (
+                  <Card key={idx} className="bg-card/40 border-border/50">
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-3">
+                          <Badge variant="outline" className={`font-mono text-[10px] uppercase
+                            ${rec.priority === 'urgent' ? 'border-destructive text-destructive bg-destructive/10' : ''}
+                            ${rec.priority === 'high' ? 'border-orange-500 text-orange-500 bg-orange-500/10' : ''}
+                            ${rec.priority === 'medium' ? 'border-yellow-500 text-yellow-500 bg-yellow-500/10' : ''}
+                            ${rec.priority === 'low' ? 'border-primary text-primary bg-primary/10' : ''}
+                          `}>
+                            {rec.priority}
+                          </Badge>
+                          <Badge variant="secondary" className="font-mono text-[10px] uppercase">
+                            {rec.category}
+                          </Badge>
+                        </div>
+                      </div>
+                      <CardTitle className="font-display text-md mt-3">{rec.title}</CardTitle>
+                      <CardDescription className="font-mono mt-1">{rec.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2 mt-2">
+                        {rec.actionSteps.map((step, i) => (
+                          <li key={i} className="flex items-start font-mono text-sm">
+                            <span className="text-accent mr-2 mt-0.5">›</span>
+                            <span className="text-muted-foreground">{step}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
