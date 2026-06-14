@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Shield, ShieldAlert, KeyRound, Activity, Eye, EyeOff, Lock, AlertTriangle, Fingerprint } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
 
 export default function PasswordsPage() {
   const [password, setPassword] = useState("");
@@ -14,6 +15,9 @@ export default function PasswordsPage() {
   const checkPassword = useCheckPassword();
 
   const handleCheck = (e: React.FormEvent) => {
+    trackEvent("password_checked", "/passwords", {
+      source: "privacyguard",
+    });
     e.preventDefault();
     if (!password) return;
     checkPassword.mutate(

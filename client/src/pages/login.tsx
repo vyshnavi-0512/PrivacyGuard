@@ -10,6 +10,7 @@ import { auth, googleProvider } from "@/../firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, setPersistence, browserLocalPersistence, browserSessionPersistence } from "firebase/auth";
 import { useAuth } from "@/context/AuthContext";
 import { Shield, ArrowRight } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
 
 const particleNodes = [
   { left: 10, top: 18, size: "7px", delay: "0s" },
@@ -81,14 +82,26 @@ export default function LoginPage() {
       await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
       if (mode === "register") {
         await createUserWithEmailAndPassword(auth, email, password);
+      
+        trackEvent("signup", "/login", {
+          source: "privacyguard",
+        });
       } else {
         await signInWithEmailAndPassword(auth, email, password);
+      
+        trackEvent("login", "/login", {
+          source: "privacyguard",
+        });
       }
+      
       navigate("/", { replace: true });
     } catch (err: any) {
+      trackEvent("error", "/login", {
+        source: "privacyguard",
+        message: err?.message ?? "Authentication failed",
+      });
+    
       setError(err?.message ?? "Authentication failed.");
-    } finally {
-      setSubmitting(false);
     }
   }
 
@@ -99,8 +112,16 @@ export default function LoginPage() {
     try {
       await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
       await signInWithPopup(auth, googleProvider);
+      trackEvent("login", "/login", {
+        source: "privacyguard",
+        provider: "google",
+      });
       navigate("/", { replace: true });
     } catch (err: any) {
+      trackEvent("error", "/login", {
+        source: "privacyguard",
+        message: err?.message ?? "Google sign-in failed",
+      });
       setError(err?.message ?? "Google sign-in failed.");
     } finally {
       setSubmitting(false);

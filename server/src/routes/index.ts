@@ -5,9 +5,10 @@ import advisorRouter from "./advisor.js";
 import dashboardRouter from "./dashboard.js";
 import monitorsRouter from "./monitors.js";
 import passwordsRouter from "./passwords.js";
+import remediationRoutes from "./remediation.js";
 
 const router = Router();
-
+router.use("/remediation", remediationRoutes);
 router.use(healthRouter);
 router.use(scansRouter);
 router.use(advisorRouter);

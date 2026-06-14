@@ -1,4 +1,5 @@
-import admin, { cert, initializeApp } from "firebase-admin";
+import admin from "firebase-admin";
+import { initializeApp, cert } from "firebase-admin/app";
 
 let initialized = false;
 

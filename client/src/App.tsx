@@ -11,6 +11,10 @@ import PasswordsPage from "@/pages/passwords";
 import NotFound from "@/pages/not-found";
 import LoginPage from "@/pages/login";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { useLocation } from "wouter";
+import { useEffect } from "react";
+import { trackEvent } from "./lib/analytics";
+
 
 const queryClient = new QueryClient();
 
@@ -38,13 +42,28 @@ function Router() {
   );
 }
 
+function AnalyticsTracker() {
+  const [location] = useLocation();
+
+  useEffect(() => {
+    console.log("Tracker fired:", location);
+
+    trackEvent("page_view", location, {
+      source: "privacyguard",
+    });
+  }, [location]);
+
+  return null;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WouterRouter>
-          <Router />
-        </WouterRouter>
+      <WouterRouter>
+  <AnalyticsTracker />
+  <Router />
+</WouterRouter>
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>

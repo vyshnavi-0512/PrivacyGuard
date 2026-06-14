@@ -3,7 +3,7 @@ import { Shield, LayoutDashboard, History, Search, Terminal, Eye, KeyRound, LogO
 import { signOut } from "firebase/auth";
 import { auth } from "@/../firebase";
 import { useAuth } from "@/context/AuthContext";
-
+import { trackEvent } from "@/lib/analytics";
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location, navigate] = useLocation();
   const { user, loading } = useAuth();
@@ -57,6 +57,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={async () => {
+                trackEvent("logout", "/logout", {
+                  source: "privacyguard",
+                });
                 try {
                   await signOut(auth);
                 } finally {

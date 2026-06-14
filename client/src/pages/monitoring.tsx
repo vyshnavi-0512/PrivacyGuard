@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, Trash2, RefreshCw, AlertCircle, Shield, Plus, Bell, Activity } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { trackEvent } from "@/lib/analytics";
 
 export default function MonitoringPage() {
   const [email, setEmail] = useState("");
@@ -37,6 +38,9 @@ export default function MonitoringPage() {
       { data: { email } },
       {
         onSuccess: () => {
+          trackEvent("monitor_added", "/monitoring", {
+            source: "privacyguard",
+          });
           setEmail("");
           queryClient.invalidateQueries({ queryKey: getListMonitorsQueryKey() });
           toast({ title: "Monitor Added", description: `Now watching ${email}` });

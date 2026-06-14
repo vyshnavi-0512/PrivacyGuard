@@ -20,8 +20,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Search, ShieldAlert, Cpu, AlertTriangle, CheckCircle, ArrowRight, Shield } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const phoneRegex = /^\+?[1-9]\d{7,14}$/;
+
 
 const scanSchema = z
   .object({
@@ -39,7 +43,43 @@ const scanSchema = z
     }
   });
 
+
 export default function ScanPage() {
+  const [aiPlan, setAiPlan] = useState("");
+const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+  const generateRemediationPlan = async () => {
+    if (!scanResult) return;
+  
+    try {
+      setIsGeneratingPlan(true);
+  
+      const response = await fetch(
+        "http://localhost:3001/api/remediation",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            riskScore: scanResult.riskScore,
+            breaches: scanResult.breaches.map(
+              (b: any) => b.name
+            ),
+            exposedData: scanResult.exposedDataTypes,
+          }),
+        }
+      );
+  
+      const data = await response.json();
+  
+      setAiPlan(data.plan);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsGeneratingPlan(false);
+    }
+  };
+
   const [location] = useLocation();
   const searchParams = new URLSearchParams(window.location.search);
   const initialQuery = searchParams.get("query") || "";
@@ -57,20 +97,48 @@ export default function ScanPage() {
     defaultValues: {
       query: initialQuery,
       type: initialType,
+      
     },
   });
-
   const onSubmit = (values: z.infer<typeof scanSchema>) => {
     setScanResult(null);
     setAdvisorResponse(null);
+    setAiPlan("");
+    setIsGeneratingPlan(false);
+    trackEvent("scan_started", "/scan", {
+      source: "privacyguard",
+    });
     createScan.mutate(
       { data: values },
       {
         onSuccess: (result) => {
           setScanResult(result);
-          queryClient.invalidateQueries({ queryKey: getGetScanHistoryQueryKey() });
-          queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
-          queryClient.invalidateQueries({ queryKey: getGetBreachCategoriesQueryKey() });
+    
+          queryClient.invalidateQueries({
+            queryKey: getGetScanHistoryQueryKey(),
+          });
+    
+          queryClient.invalidateQueries({
+            queryKey: getGetDashboardSummaryQueryKey(),
+          });
+    
+          queryClient.invalidateQueries({
+            queryKey: getGetBreachCategoriesQueryKey(),
+          });
+    
+          trackEvent("scan_completed", "/scan", {
+            source: "privacyguard",
+          });
+        },
+    
+        onError: (error) => {
+          trackEvent("error", "/scan", {
+            source: "privacyguard",
+            message:
+              error instanceof Error
+                ? error.message
+                : "Scan failed",
+          });
         },
       }
     );
@@ -261,15 +329,15 @@ export default function ScanPage() {
           {!advisorResponse && scanResult.breachCount > 0 && (
             <div className="flex justify-center pt-8">
               <Button 
-                onClick={handleGetAdvice} 
-                disabled={getAdvisor.isPending}
+                onClick={generateRemediationPlan}
+                disabled={isGeneratingPlan}
                 size="lg"
                 className="font-display uppercase tracking-widest bg-accent text-accent-foreground hover:bg-accent/90"
               >
-                {getAdvisor.isPending ? (
+                {isGeneratingPlan ? (
                   <span className="flex items-center">
                     <Cpu className="w-4 h-4 mr-2 animate-spin" />
-                    Analyzing Threat Data...
+                    Generating AI Plan...
                   </span>
                 ) : (
                   <span className="flex items-center">
@@ -280,7 +348,20 @@ export default function ScanPage() {
               </Button>
             </div>
           )}
-
+{aiPlan && (
+  <Card className="mt-6 border-accent/20">
+    <CardHeader>
+      <CardTitle className="text-accent">
+        AI Remediation Plan
+      </CardTitle>
+    </CardHeader>
+    <CardContent className="prose prose-invert max-w-none">
+  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+    {aiPlan}
+  </ReactMarkdown>
+</CardContent>
+  </Card>
+)}
           {advisorResponse && (
             <div className="mt-12 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <h2 className="font-display text-xl font-bold tracking-wide flex items-center text-accent">
