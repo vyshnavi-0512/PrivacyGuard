@@ -9,6 +9,7 @@ import remediationRoutes from "./remediation.js";
 import eventsRouter from "./events.js";
 
 const router = Router();
+router.use(eventsRouter); // FIRST
 router.use("/remediation", remediationRoutes);
 router.use(healthRouter);
 router.use(scansRouter);
@@ -16,6 +17,5 @@ router.use(advisorRouter);
 router.use(dashboardRouter);
 router.use(monitorsRouter);
 router.use(passwordsRouter);
-router.use(eventsRouter);
 
 export default router;
