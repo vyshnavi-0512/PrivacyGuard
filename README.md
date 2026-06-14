@@ -37,7 +37,6 @@ cp .env.example server/.env
 
 Edit `server/.env`:
 ```
-DATABASE_URL=postgresql://postgres:password@localhost:5432/privacy_guard
 OPENAI_API_KEY=sk-...
 PORT=3001
 ```
@@ -59,8 +58,6 @@ npm run dev
 ```
 
 This starts both the API server (port 3001) and the frontend (port 5173) concurrently.
-
-Open http://localhost:5173 in your browser.
 
 ## Project Structure
 

@@ -54,7 +54,7 @@ const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
       setIsGeneratingPlan(true);
   
       const response = await fetch(
-        "http://localhost:3001/api/remediation",
+        `${import.meta.env.VITE_API_URL}/api/remediation`,
         {
           method: "POST",
           headers: {
