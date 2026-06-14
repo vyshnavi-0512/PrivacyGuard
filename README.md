@@ -1,108 +1,244 @@
-# Privacy Guard
+# 🛡️ Privacy Guard — AI-Powered Privacy & Breach Monitoring Platform
 
-A cybersecurity web app that detects personal data breaches using OSINT APIs, with an AI Risk Advisor, email monitoring, and a password breach checker.
+An intelligent cybersecurity platform that helps users detect exposed credentials, monitor privacy risks, analyze security exposure, and receive AI-powered recommendations for protecting their digital identity.
 
-## Features
+---
 
-- **Threat Scan** — search your email or username against 3.2 billion leaked credentials (ProxyNova COMB)
-- **Password Checker** — check if a password appears in breach data using HaveIBeenPwned k-anonymity (your password is never sent anywhere)
-- **Email Monitoring** — watch emails for new breaches with 24-hour scheduled re-scans and alerts
-- **AI Risk Advisor** — OpenAI-powered remediation plan generated from your scan results
-- **Dashboard** — overview of all scan history, risk distribution, and breach categories
+## 🚀 Live Demo
 
-## Requirements
+🌐 **Frontend:** https://privacy-guard-one.vercel.app/
+ 
+🔗 **Backend API:** https://privacy-guard-api.onrender.com
 
-- Node.js 20+
-- PostgreSQL database
-- OpenAI API key (for the AI Risk Advisor feature)
+---
 
-## Quick Start
+## 🚀 Overview
 
-### 1. Clone / unzip and install dependencies
+Privacy Guard is an AI-powered cybersecurity platform designed to help users proactively monitor and secure their online presence. The platform scans emails, usernames, phone numbers, and passwords against known breach intelligence sources, generates risk scores, and provides actionable recommendations using AI.
+
+By combining threat intelligence, external APIs, authentication services, and AI-powered analysis, Privacy Guard enables users to detect exposures before they become security incidents.
+
+---
+
+## 🧠 Key Features
+
+🔍 **Threat Scanning** for emails, usernames, and phone numbers
+
+🔐 **Password Breach Checker** with privacy-preserving verification
+
+🤖 **AI Risk Advisor** powered by Gemini AI
+
+📧 **Email Monitoring** and breach alerts
+
+📊 **Interactive Security Dashboard**
+
+🕒 **Scan History Tracking**
+
+🚨 **Real-Time Risk Analysis**
+
+🔑 **Google OAuth & Email Authentication**
+
+🛡️ **Privacy Exposure Analysis**
+
+📈 **Risk Score Generation**
+
+---
+
+## 📸 Screenshots
+
+### 🔐 Authentication
+<p align="center">
+  <img src="images/auth.png" width="95%">
+</p>
+
+---
+
+### 📊 Overview Dashboard
+<p align="center">
+  <img src="images/overview.png" width="95%">
+</p>
+
+---
+
+### 🔍 Threat Scan
+<p align="center">
+  <img src="images/threat-scan.png" width="95%">
+</p>
+
+---
+
+### 📧 Monitoring
+<p align="center">
+  <img src="images/monitoring.png" width="95%">
+</p>
+
+---
+
+### 🕒 Scan History
+<p align="center">
+  <img src="images/scan-history.png" width="95%">
+</p>
+
+---
+
+### 🔐 Password Checker
+<p align="center">
+  <img src="images/password-check.png" width="95%">
+</p>
+
+---
+
+## 🏗️ Architecture
+
+<p align="center">
+  <img src="images/architecture.png" width="95%">
+</p>
+
+---
+
+## ⚙️ Workflow
+
+```text
+User Authentication
+(Google OAuth / Email Login)
+            ↓
+Enter Email / Username / Phone Number
+            ↓
+Threat Scan Request
+            ↓
+Express.js Backend API
+            ↓
+RapidAPI Integrations
+ ├── Email Lookup
+ ├── Username Lookup
+ ├── Phone Lookup
+ └── Password Breach Check
+            ↓
+Gemini AI Risk Advisor
+            ↓
+Neon PostgreSQL Database
+(Drizzle ORM)
+            ↓
+Risk Analysis & Monitoring
+            ↓
+Dashboard Insights & Alerts
+```
+
+---
+
+## 🛠️ Tech Stack
+
+| Category | Technologies |
+|----------|-------------|
+| 🎨 Frontend | React, TypeScript, Tailwind CSS |
+| ⚙️ Backend | Node.js, Express.js |
+| 🗄️ Database | Neon PostgreSQL |
+| 🧩 ORM | Drizzle ORM |
+| 🤖 AI | Gemini API |
+| 🔐 Authentication | Firebase Auth, Google OAuth |
+| 🌐 APIs | RapidAPI |
+| ☁️ Deployment | Vercel, Render |
+
+---
+
+## 📂 Repository Structure
 
 ```bash
-# Install all dependencies (root + server + client)
+privacy-guard/
+│
+├── client/
+│
+├── server/
+│   ├── src/
+│   │   ├── routes/
+│   │   ├── services/
+│   │   ├── lib/
+│   │   └── db/
+│
+├── images/
+│
+├── shared/
+│
+├── README.md
+└── package.json
+```
+
+---
+
+## 🚀 Run Locally
+
+```bash
+# Clone repository
+git clone https://github.com/vyshnavi-0512/privacy-guard.git
+
+# Navigate to project
+cd privacy-guard
+
+# Install dependencies
 npm install
-cd server && npm install && cd ..
-cd client && npm install && cd ..
-```
 
-### 2. Set up environment variables
-
-Copy the example env file and fill in your values:
-
-```bash
-cp .env.example server/.env
-```
-
-Edit `server/.env`:
-```
-OPENAI_API_KEY=sk-...
-PORT=3001
-```
-
-### 3. Set up the database
-
-Create a PostgreSQL database called `privacy_guard` (or whatever you named it in DATABASE_URL), then push the schema:
-
-```bash
-cd server
-npm run db:push
-cd ..
-```
-
-### 4. Run the app
-
-```bash
+# Start development server
 npm run dev
 ```
 
-This starts both the API server (port 3001) and the frontend (port 5173) concurrently.
+---
 
-## Project Structure
+## 🔒 Core Modules
 
-```
-privacy-guard/
-├── server/              Express API backend (port 3001)
-│   ├── src/
-│   │   ├── db/          Drizzle ORM schema + connection
-│   │   ├── lib/         Scanner, scheduler, logger
-│   │   └── routes/      API route handlers
-│   └── drizzle.config.ts
-├── client/              React + Vite frontend (port 5173)
-│   └── src/
-│       ├── lib/         API client hooks, schemas, utils
-│       ├── components/  Layout + shadcn/ui components
-│       └── pages/       Dashboard, Scan, Monitoring, Passwords, History
-└── .env.example
-```
+🔐 Authentication & User Management
 
-## API Endpoints
+🔍 Threat Intelligence Scanner
 
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | /api/scans | Run breach scan |
-| GET | /api/scans/history | Recent scan history |
-| POST | /api/advisor/recommend | AI security recommendations |
-| GET | /api/dashboard/summary | Dashboard stats |
-| GET | /api/dashboard/breach-categories | Data category breakdown |
-| GET | /api/monitors | List monitored emails |
-| POST | /api/monitors | Add email to monitor |
-| DELETE | /api/monitors/:id | Remove a monitor |
-| POST | /api/monitors/:id/scan | Trigger manual re-scan |
-| GET | /api/monitors/alerts | List breach alerts |
-| POST | /api/passwords/check | Check password via HIBP k-anonymity |
+📧 Email Monitoring System
 
-## Data Sources
+🛡️ Password Exposure Checker
 
-- **Email scanning**: [ProxyNova COMB API](https://api.proxynova.com) — 3.2 billion records, free, no key required
-- **Password checking**: [HaveIBeenPwned Pwned Passwords](https://haveibeenpwned.com/API/v3#PwnedPasswords) — 1 billion+ passwords, free, no key required (k-anonymity)
-- **AI recommendations**: OpenAI GPT-4o-mini (requires OPENAI_API_KEY)
+🤖 AI Risk Advisor
 
-## Environment Variables
+📊 Analytics Dashboard
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `OPENAI_API_KEY` | Yes (for AI) | OpenAI API key for the AI Risk Advisor |
-| `PORT` | No | API server port (default: 3001) |
+🕒 Scan History Tracking
+
+📈 Risk Scoring Engine
+
+---
+
+## 📈 Metrics Tracked
+
+📧 Monitored Emails
+
+🔓 Breached Accounts
+
+⚠️ Risk Scores
+
+📊 Exposure Categories
+
+🕒 Scan History
+
+🚨 Critical Alerts
+
+---
+
+## 🛣️ Future Improvements
+
+🔲 Real-Time Breach Notifications
+
+🔲 Browser Extension
+
+🔲 Dark Web Monitoring
+
+🔲 Advanced Threat Intelligence
+
+🔲 Security Reports Export
+
+🔲 Multi-User Support
+
+---
+
+## 👩‍💻 Author
+
+**Vyshnavi Madishetti**
+
+---
+
+⭐ If you found this project useful, consider giving it a star on GitHub!
