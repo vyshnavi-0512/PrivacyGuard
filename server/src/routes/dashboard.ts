@@ -2,7 +2,7 @@ import { Router, type Request, type Response } from "express";
 import { db, scansTable, monitorsTable, alertsTable } from "../db/index.js";
 import { sql, desc, eq, and } from "drizzle-orm";
 import { requireFirebaseAuth } from "../lib/auth-middleware.js";
-
+console.log("Dashboard router loaded");
 const router = Router();
 router.use(requireFirebaseAuth);
 
